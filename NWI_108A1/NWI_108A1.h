@@ -15,8 +15,14 @@
 
 // Main
 #define BUS_WIDTH	8
+#define BUS_WIDTH_BYTE	(BUS_WIDTH / 8)
 #define MEM_SIZE	1024
 #define MEM_TYPE	1
+
+// Memory partitions
+#define ADR_IO			16
+#define ADR_SRAM		96
+#define ADR_STACK		768
 
 // Register
 // General Purpose Registers
@@ -78,6 +84,7 @@ DECLDIR int sys_cmpl(char *cmd, var_t *vars, unsigned int var_num, char *params[
 DECLDIR int sys_bus();
 DECLDIR int sys_size();
 DECLDIR int sys_mem();
+DECLDIR int sys_mem_offset(void);
 
 static int isVariableValid(var_t *vars, unsigned int var_num, char *variable);
 

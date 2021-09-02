@@ -15,7 +15,8 @@ const unsigned int *reg_addrs[] = { R0, R1, R2, R3, T0, TCON0, TCMPA0, TCMPB0,
 	TX0, RX0, UCONTA0, UCONTB0, BAUD0, USTAT0, PIN0, DIR0, IRE0, IR_TRG0 };
 
 DECLDIR int sys_cmpl(char *cmd, var_t *vars, unsigned int var_num, char *params[], unsigned int param_num, unsigned int *cmpl, unsigned int *cmpl_num) {
-	unsigned int i = 0, j = 0, cmdIndex, paramIndex, cmdCmpl, parCmpl[8];
+	unsigned int i = 0, j = 0, cmdCmpl, parCmpl[8];
+	int cmdIndex, paramIndex, varIndex;
 	char cmdOk = 0, paramsOk = 0;
 	// Check if the command is in the command list
 	cmdIndex = getStringIndex(cmd, insts);
@@ -26,19 +27,33 @@ DECLDIR int sys_cmpl(char *cmd, var_t *vars, unsigned int var_num, char *params[
 	if (cmdIndex == 4 || cmdIndex == 5 || cmdIndex == 6 || cmdIndex == 7) *cmpl_num = 2;
 	else *cmpl_num = 1;
 	// Return if only the command length was requested
-	if (cmpl == NULL) return 0;
+	if (cmpl == NULL) {
+		return 0;
+	} else {
+		// Init the compiled command array
+		*cmpl = 0;
+		cmpl[1] = 0;
+	}
 	// Compile parameters
 	for (i = 0; i < param_num; i++) {
 		// Check if parameter is a register
 		paramIndex = getStringIndex(params[i], regs);
-		parCmpl[i] = reg_addrs[paramIndex];
-		if (paramIndex != -1) continue;
+		if (paramIndex > -1) {
+			parCmpl[i] = reg_addrs[paramIndex];
+			continue;
+		}
+
+		// Check if parameter is a variable
+		varIndex = isVariableValid(vars, var_num, params[i]);
+		if (varIndex > -1) {
+			// Set variable value for the next byte
+			parCmpl[i] = (vars[varIndex].adr * BUS_WIDTH_BYTE) + vars[varIndex].slot_pos + ADR_SRAM;
+			continue;
+		}
+
 		// Check if parameter is a number in HEX or DEC or BIN
 		if (!strToNum(params[i], &parCmpl[i])) return 4;
 	}
-	// Init the compiled command array
-	*cmpl = 0;
-	cmpl[1] = 0;
 	// Compile Command
 	if (cmdIndex < 8) {
 		switch (cmdIndex) {
@@ -106,6 +121,10 @@ DECLDIR int sys_size() {
 
 DECLDIR int sys_mem() {
 	return MEM_TYPE;
+}
+
+DECLDIR int sys_mem_offset() {
+	return ADR_SRAM;
 }
 
 static int isVariableValid(var_t * vars, unsigned int var_num, char * variable) {
